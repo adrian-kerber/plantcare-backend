@@ -1,0 +1,29 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model Planta {
+  id             Int       @id @default(autoincrement())
+  nome           String
+  tipo           String
+  local          String
+  dataAquisicao  DateTime
+  observacoes    String?
+  fotoUrl        String?
+  cuidados       Cuidado[]
+}
+
+model Cuidado {
+  id              Int      @id @default(autoincrement())
+  tipo            String   // rega, adubação, poda
+  dataProgramada  DateTime
+  realizado       Boolean  @default(false)
+  dataRealizacao  DateTime?
+  plantaId        Int
+  planta          Planta   @relation(fields: [plantaId], references: [id])
+}
