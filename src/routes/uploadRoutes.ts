@@ -1,35 +1,34 @@
 import express from "express";
 import multer from "multer";
-import path from "path";
-import fs from "fs";
+import axios from "axios";
+import dotenv from "dotenv";
+
+dotenv.config();
 
 const router = express.Router();
+const upload = multer();
 
-const uploadDir = path.join(__dirname, "../../uploads");
-if (!fs.existsSync(uploadDir)) {
-  fs.mkdirSync(uploadDir);
-}
-
-const storage = multer.diskStorage({
-  destination: function (_, __, cb) {
-    cb(null, uploadDir);
-  },
-  filename: function (_, file, cb) {
-    const uniqueName = Date.now() + "-" + file.originalname;
-    cb(null, uniqueName);
-  }
-});
-
-const upload = multer({ storage });
-
-router.post("/upload", upload.single("foto"), (req, res) => {
+router.post("/upload", upload.single("foto"), async (req, res) => {
   if (!req.file) {
     return res.status(400).json({ error: "Nenhum arquivo enviado" });
   }
 
-  const baseUrl = process.env.BASE_URL || "https://plantcare-backend.onrender.com";
-  const filePath = `${baseUrl}/uploads/${req.file.filename}`;
-  res.status(200).json({ imageUrl: filePath });
+  try {
+    const imgurResponse = await axios.post("https://api.imgur.com/3/image", {
+      image: req.file.buffer.toString("base64"),
+      type: "base64",
+    }, {
+      headers: {
+        Authorization: `Client-ID ${process.env.IMGUR_CLIENT_ID}`,
+      },
+    });
+
+    const imageUrl = imgurResponse.data.data.link;
+    return res.status(200).json({ imageUrl });
+  } catch (error) {
+    console.error("Erro ao fazer upload para Imgur:", error);
+    return res.status(500).json({ error: "Erro ao enviar imagem para Imgur" });
+  }
 });
 
 export default router;
