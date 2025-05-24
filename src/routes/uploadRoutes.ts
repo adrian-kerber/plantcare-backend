@@ -4,31 +4,33 @@ import axios from "axios";
 import dotenv from "dotenv";
 
 dotenv.config();
-
 const router = express.Router();
-const upload = multer();
+
+const storage = multer.memoryStorage();
+const upload = multer({ storage });
 
 router.post("/upload", upload.single("foto"), async (req, res) => {
-  if (!req.file) {
-    return res.status(400).json({ error: "Nenhum arquivo enviado" });
-  }
-
   try {
-    const imgurResponse = await axios.post("https://api.imgur.com/3/image", {
-      image: req.file.buffer.toString("base64"),
-      type: "base64",
+    if (!req.file) return res.status(400).json({ error: "Nenhum arquivo enviado" });
+
+    const imageBase64 = req.file.buffer.toString("base64");
+
+    const response = await axios.post("https://api.imgur.com/3/image", {
+      image: imageBase64,
+      type: "base64"
     }, {
       headers: {
-        Authorization: `Client-ID ${process.env.IMGUR_CLIENT_ID}`,
-      },
+        Authorization: `Client-ID ${process.env.IMGUR_CLIENT_ID}`
+      }
     });
 
-    const imageUrl = imgurResponse.data.data.link;
-    return res.status(200).json({ imageUrl });
-  } catch (error) {
-    console.error("Erro ao fazer upload para Imgur:", error);
-    return res.status(500).json({ error: "Erro ao enviar imagem para Imgur" });
-  }
+    const imageUrl = response.data.data.link;
+    res.json({ imageUrl });
+  } catch (err) {
+  const error = err as any; // ou use uma interface mais precisa se desejar
+  console.error("Erro no upload para Imgur:", error?.response?.data || error?.message || error);
+  res.status(500).json({ error: "Erro ao enviar imagem para Imgur" });
+}
 });
 
 export default router;
