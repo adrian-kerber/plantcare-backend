@@ -1,37 +1,46 @@
 import express from "express";
 import multer from "multer";
-import axios from "axios";
+import { v2 as cloudinary } from "cloudinary";
+import { Readable } from "stream";
 import dotenv from "dotenv";
 
 dotenv.config();
 const router = express.Router();
+const upload = multer();
 
-const storage = multer.memoryStorage();
-const upload = multer({ storage });
+// Configuração do Cloudinary
+cloudinary.config({
+  cloud_name: "process.env.CLOUDINARY_CLOUD_NAME",
+  api_key: "process.env.CLOUDINARY_API_KEY",
+  api_secret: "rocess.env.CLOUDINARY_API_SECRET"
+});
 
+// Rota para upload de imagem
 router.post("/upload", upload.single("foto"), async (req, res) => {
-  console.log("Client ID do Imgur:", process.env.IMGUR_CLIENT_ID);
   try {
-    if (!req.file) return res.status(400).json({ error: "Nenhum arquivo enviado" });
+    if (!req.file) {
+      return res.status(400).json({ error: "Nenhum arquivo enviado" });
+    }
 
-    const imageBase64 = req.file.buffer.toString("base64");
+    const bufferStream = Readable.from(req.file.buffer);
 
-    const response = await axios.post("https://api.imgur.com/3/image", {
-      image: imageBase64,
-      type: "base64"
-    }, {
-      headers: {
-        Authorization: `Client-ID ${process.env.IMGUR_CLIENT_ID}`
+    const uploadStream = cloudinary.uploader.upload_stream(
+      { folder: "plantcare" },
+      (error, result) => {
+        if (error) {
+          console.error("Erro ao enviar para o Cloudinary:", error);
+          return res.status(500).json({ error: "Erro ao enviar imagem para Cloudinary" });
+        }
+
+        return res.status(200).json({ imageUrl: result?.secure_url });
       }
-    });
+    );
 
-    const imageUrl = response.data.data.link;
-    res.json({ imageUrl });
+    bufferStream.pipe(uploadStream);
   } catch (err) {
-  const error = err as any; // ou use uma interface mais precisa se desejar
-  console.error("Erro no upload para Imgur:", error?.response?.data || error?.message || error);
-  res.status(500).json({ error: "Erro ao enviar imagem para Imgur" });
-}
+    console.error("Erro interno no upload:", err);
+    return res.status(500).json({ error: "Erro inesperado no servidor" });
+  }
 });
 
 export default router;
