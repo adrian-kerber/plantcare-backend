@@ -27,7 +27,7 @@ router.post("/upload", upload.single("foto"), (req, res) => {
     return res.status(400).json({ error: "Nenhum arquivo enviado" });
   }
 
-  const baseUrl = process.env.BASE_URL || "http://localhost:3333";
+  const baseUrl = process.env.BASE_URL || "https://plantcare-backend.onrender.com";
   const filePath = `${baseUrl}/uploads/${req.file.filename}`;
   res.status(200).json({ imageUrl: filePath });
 });
