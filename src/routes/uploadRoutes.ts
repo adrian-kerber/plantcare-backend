@@ -10,6 +10,7 @@ const storage = multer.memoryStorage();
 const upload = multer({ storage });
 
 router.post("/upload", upload.single("foto"), async (req, res) => {
+  console.log("Client ID do Imgur:", process.env.IMGUR_CLIENT_ID);
   try {
     if (!req.file) return res.status(400).json({ error: "Nenhum arquivo enviado" });
 
