@@ -81,12 +81,19 @@ export const excluirPlanta = async (req: Request, res: Response) => {
   try {
     const { id } = req.params;
 
+    // Exclui todos os cuidados da planta
+    await prisma.cuidado.deleteMany({
+      where: { plantaId: Number(id) },
+    });
+
+    // Agora pode excluir a planta
     await prisma.planta.delete({
-      where: { id: Number(id) }
+      where: { id: Number(id) },
     });
 
     res.status(204).send();
   } catch (error) {
+    console.error("Erro ao excluir planta:", error);
     res.status(500).json({ error: "Erro ao excluir planta." });
   }
 };
